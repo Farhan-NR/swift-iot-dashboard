@@ -552,10 +552,20 @@ tr:hover td { background:var(--bg); }
 const CREDS = { u: 'kelompok1', p: 'kelompok112345' };
 document.getElementById('lp').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 
+// Cek session saat halaman load
+window.addEventListener('load', () => {
+  if(sessionStorage.getItem('swift_logged_in') === 'true') {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    initDashboard();
+  }
+});
+
 function doLogin() {
   const u = document.getElementById('lu').value.trim();
   const p = document.getElementById('lp').value;
   if(u===CREDS.u && p===CREDS.p) {
+    sessionStorage.setItem('swift_logged_in', 'true');
     const lp = document.getElementById('loginPage');
     lp.style.transition = 'opacity .3s';
     lp.style.opacity = '0';
@@ -573,6 +583,8 @@ function doLogin() {
 }
 
 function doLogout() {
+  sessionStorage.removeItem('swift_logged_in');
+  clearInterval(pollTimer);
   document.getElementById('dashboard').style.display = 'none';
   const lp = document.getElementById('loginPage');
   lp.style.display = 'flex';
