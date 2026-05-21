@@ -546,6 +546,7 @@ tr:hover td { background:var(--bg); }
 
 <!-- API MODAL -->
 
+
 <script>
 // ── AUTH ──
 const CREDS = { u: 'kelompok1', p: 'kelompok112345' };
@@ -848,22 +849,7 @@ async function sendCmd(cmd) {
   }
 }
 
-// ── API MODAL ── {
-  API_URL = document.getElementById('apiUrlInput').value.trim();
-  hideModal();
-  clearInterval(pollTimer);
-  try {
-    const r = await fetch(API_URL+'/api/health',{signal:AbortSignal.timeout(5000)});
-    const d = await r.json();
-    if(d.status==='ok') {
-      setStatus('online','API Terhubung');
-      startPoll();
-    }
-  } catch {
-    setStatus('offline','Gagal Connect');
-    alert('Gagal connect ke API. Pastikan Flask API berjalan dan SSH tunnel aktif.');
-  }
-}
+
 
 // ── AUTO POLL PREVIEW ON LOGIN PAGE ──
 async function pollLoginPreview() {
