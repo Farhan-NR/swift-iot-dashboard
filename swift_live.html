@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SWIFT — Live IoT Monitor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --white: #ffffff;
+  --bg: #f4f3ef;
+  --bg2: #eceae4;
+  --card: #ffffff;
+  --border: #e0ddd6;
+  --border2: #ccc9c0;
+  --text: #1c1a16;
+  --text2: #5a5649;
+  --text3: #9c9485;
+  --blue: #1d5cf5;
+  --blue-l: #eef2fe;
+  --green: #1a7a4a;
+  --green-l: #e8f7ef;
+  --green-m: #6fcf97;
+  --amber: #b45309;
+  --amber-l: #fef3e2;
+  --red: #c0392b;
+  --red-l: #fdecea;
+  --shadow: 0 2px 12px rgba(0,0,0,0.07);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.1);
+  --r: 14px;
+  --r-sm: 8px;
+  --serif: 'DM Serif Display', Georgia, serif;
+  --mono: 'DM Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.6; }
+
+/* LOGIN */
+#loginPage {
+  position: fixed; inset: 0; z-index: 999;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--white);
+}
+.lp-left {
+  flex: 1; max-width: 480px;
+  padding: 64px 56px;
+}
+.lp-right {
+  width: 420px; height: 100vh;
+  background: var(--text);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 48px;
+  gap: 20px;
+}
+@media(max-width:768px){ .lp-right{display:none} }
+.lp-logo { display:flex; align-items:center; gap:12px; margin-bottom:52px; }
+.lp-drop {
+  width:40px; height:40px; background:var(--blue);
+  border-radius:10px; display:flex; align-items:center; justify-content:center;
+  font-size:18px;
+}
+.lp-brand { font-family:var(--serif); font-size:22px; color:var(--text); }
+.lp-h { font-family:var(--serif); font-size:42px; color:var(--text); line-height:1.1; margin-bottom:8px; }
+.lp-sub { font-size:13px; color:var(--text3); margin-bottom:40px; }
+.lp-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--text2); margin-bottom:6px; display:block; }
+.lp-input {
+  width:100%; padding:12px 16px; margin-bottom:14px;
+  border:1.5px solid var(--border); border-radius:var(--r-sm);
+  background:var(--bg); font-size:14px; font-family:var(--sans);
+  color:var(--text); outline:none; transition:border-color .2s;
+}
+.lp-input:focus { border-color:var(--blue); background:var(--white); }
+.lp-input::placeholder { color:var(--text3); }
+.lp-btn {
+  width:100%; padding:13px; margin-top:6px;
+  background:var(--text); color:var(--white);
+  border:none; border-radius:var(--r-sm);
+  font-size:14px; font-family:var(--sans); font-weight:500;
+  cursor:pointer; transition:all .15s;
+}
+.lp-btn:hover { background:#2d2b25; }
+.lp-err { font-size:12px; color:var(--red); padding:9px 12px; background:var(--red-l); border-radius:6px; display:none; margin-bottom:10px; border-left:3px solid var(--red); }
+.lp-footer { margin-top:40px; font-size:11px; color:var(--text3); display:flex; justify-content:space-between; }
+
+/* RIGHT PANEL */
+.rp-card {
+  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+  border-radius:var(--r); padding:20px 24px; width:100%;
+}
+.rp-label { font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:.8px; margin-bottom:6px; }
+.rp-val { font-family:var(--mono); font-size:26px; font-weight:300; color:white; }
+.rp-sub { font-size:11px; color:rgba(255,255,255,0.4); margin-top:4px; }
+.rp-live { display:flex; align-items:center; gap:8px; font-size:11px; color:var(--green-m); font-family:var(--mono); margin-bottom:32px; }
+.rp-dot { width:6px; height:6px; border-radius:50%; background:var(--green-m); animation:pulse 1.5s infinite; }
+
+/* DASHBOARD */
+#dashboard { display:none; min-height:100vh; }
+
+/* HEADER */
+.header {
+  background:var(--white); border-bottom:1px solid var(--border);
+  padding:0 32px; height:58px;
+  display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:100;
+}
+.hdr-brand { display:flex; align-items:center; gap:10px; }
+.hdr-drop { width:30px; height:30px; background:var(--blue); border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:13px; }
+.hdr-name { font-family:var(--serif); font-size:18px; }
+.hdr-right { display:flex; align-items:center; gap:12px; }
+.hdr-status {
+  display:flex; align-items:center; gap:6px;
+  padding:5px 12px; border-radius:20px;
+  font-size:11px; font-family:var(--mono); font-weight:500;
+}
+.hdr-status.online { background:var(--green-l); color:var(--green); border:1px solid #b7ecd2; }
+.hdr-status.offline { background:var(--red-l); color:var(--red); border:1px solid #f5bcb7; }
+.hdr-status.waiting { background:var(--amber-l); color:var(--amber); border:1px solid #fdd9a0; }
+.hdr-dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+.hdr-dot.pulse { animation:pulse 1.5s infinite; }
+.hdr-time { font-family:var(--mono); font-size:11px; color:var(--text3); }
+.api-btn {
+  padding:6px 14px; border-radius:7px;
+  background:var(--blue); color:white; border:none;
+  font-size:12px; font-family:var(--sans); font-weight:500;
+  cursor:pointer; transition:all .15s;
+}
+.api-btn:hover { background:#1449d4; }
+.logout-btn {
+  padding:6px 14px; border-radius:7px;
+  background:none; color:var(--text3); border:1px solid var(--border);
+  font-size:12px; cursor:pointer; transition:all .15s;
+}
+.logout-btn:hover { color:var(--red); border-color:var(--red); background:var(--red-l); }
+
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+/* CONTENT */
+.content { padding:24px 32px; max-width:1500px; margin:0 auto; }
+
+/* DEVICE HERO */
+.device-hero {
+  background:var(--text);
+  border-radius:var(--r);
+  padding:28px 32px;
+  margin-bottom:18px;
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:24px;
+  align-items:center;
+}
+.dh-left {}
+.dh-badge {
+  display:inline-flex; align-items:center; gap:6px;
+  background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15);
+  border-radius:20px; padding:4px 12px;
+  font-size:11px; color:rgba(255,255,255,0.6); font-family:var(--mono);
+  margin-bottom:12px;
+}
+.dh-name { font-family:var(--serif); font-size:28px; color:white; margin-bottom:4px; }
+.dh-loc { font-size:13px; color:rgba(255,255,255,0.4); }
+.dh-stats { display:flex; gap:32px; margin-top:20px; }
+.dh-stat {}
+.dh-stat-val { font-family:var(--mono); font-size:22px; color:white; font-weight:300; }
+.dh-stat-label { font-size:11px; color:rgba(255,255,255,0.4); margin-top:2px; }
+.dh-right { text-align:right; }
+.dh-status-big {
+  font-family:var(--serif); font-size:36px; font-style:italic;
+  margin-bottom:6px;
+}
+.dh-status-big.aman { color:var(--green-m); }
+.dh-status-big.waspada { color:#f5c842; }
+.dh-status-big.bahaya { color:#ff6b6b; }
+.dh-status-big.offline { color:rgba(255,255,255,0.3); }
+.dh-msg { font-size:12px; color:rgba(255,255,255,0.4); }
+.dh-update { font-family:var(--mono); font-size:10px; color:rgba(255,255,255,0.25); margin-top:8px; }
+
+/* SENSOR GRID */
+.sensor-grid {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+  margin-bottom:18px;
+}
+.sensor-card {
+  background:var(--white); border:1px solid var(--border);
+  border-radius:var(--r); padding:20px 22px;
+  transition:box-shadow .2s, transform .2s;
+  position:relative; overflow:hidden;
+}
+.sensor-card:hover { box-shadow:var(--shadow); transform:translateY(-1px); }
+.sensor-card::after {
+  content:''; position:absolute; bottom:0; left:0; right:0; height:3px;
+  background:var(--sc-color, var(--blue));
+}
+.sc-icon { font-size:22px; margin-bottom:12px; }
+.sc-val { font-family:var(--mono); font-size:30px; font-weight:300; color:var(--text); line-height:1; }
+.sc-unit { font-size:13px; color:var(--text3); }
+.sc-label { font-size:11px; color:var(--text3); margin-top:6px; text-transform:uppercase; letter-spacing:.5px; }
+.sc-range { font-size:10px; color:var(--text3); margin-top:8px; padding-top:8px; border-top:1px solid var(--bg2); font-family:var(--mono); }
+
+/* ACTUATOR ROW */
+.actuator-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px; }
+.act-card {
+  background:var(--white); border:1px solid var(--border);
+  border-radius:var(--r); padding:16px 20px;
+  display:flex; align-items:center; gap:14px;
+}
+.act-icon-wrap {
+  width:40px; height:40px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center; font-size:18px;
+  flex-shrink:0;
+}
+.act-name { font-size:12px; color:var(--text3); text-transform:uppercase; letter-spacing:.5px; margin-bottom:3px; }
+.act-state { font-family:var(--mono); font-size:15px; font-weight:500; }
+.act-state.on { color:var(--green); }
+.act-state.off { color:var(--text3); }
+.act-state.active { color:var(--red); }
+.act-ctrl {
+  margin-left:auto; padding:5px 12px;
+  border-radius:6px; border:1px solid var(--border);
+  background:none; font-size:11px; cursor:pointer;
+  font-family:var(--sans); color:var(--text2);
+  transition:all .15s;
+}
+.act-ctrl:hover { border-color:var(--blue); color:var(--blue); background:var(--blue-l); }
+
+/* CHARTS ROW */
+.charts-row { display:grid; grid-template-columns:2fr 1fr; gap:12px; margin-bottom:18px; }
+.chart-card { background:var(--white); border:1px solid var(--border); border-radius:var(--r); padding:22px; }
+.chart-head { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px; }
+.chart-title { font-size:14px; font-weight:500; }
+.chart-sub { font-size:11px; color:var(--text3); margin-top:2px; }
+.chart-tag { font-family:var(--mono); font-size:10px; padding:3px 8px; border-radius:5px; background:var(--bg2); color:var(--text3); border:1px solid var(--border); }
+.chart-wrap { position:relative; }
+.chart-wrap.h220 { height:220px; }
+.chart-wrap.h200 { height:200px; }
+
+/* HISTORY */
+.history-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; }
+
+/* LOG TABLE */
+.log-card { background:var(--white); border:1px solid var(--border); border-radius:var(--r); overflow:hidden; margin-bottom:18px; }
+.log-head { padding:16px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.log-title { font-size:14px; font-weight:500; }
+.log-scroll { overflow-y:auto; max-height:260px; }
+table { width:100%; border-collapse:collapse; font-size:12px; }
+th { font-size:10px; text-transform:uppercase; letter-spacing:.8px; color:var(--text3); font-weight:500; padding:9px 16px; text-align:left; background:var(--bg); border-bottom:1px solid var(--border); position:sticky; top:0; white-space:nowrap; }
+td { padding:9px 16px; border-bottom:1px solid var(--bg2); color:var(--text2); white-space:nowrap; }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:var(--bg); }
+.badge { display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:5px; font-size:11px; font-weight:500; font-family:var(--mono); }
+.badge::before { content:''; width:5px; height:5px; border-radius:50%; }
+.badge.aman { background:var(--green-l); color:var(--green); }
+.badge.aman::before { background:var(--green); }
+.badge.waspada { background:var(--amber-l); color:var(--amber); }
+.badge.waspada::before { background:var(--amber); }
+.badge.bahaya { background:var(--red-l); color:var(--red); }
+.badge.bahaya::before { background:var(--red); }
+
+/* ALERT BAR */
+.alert-bar {
+  padding:12px 20px; border-radius:var(--r-sm);
+  display:flex; align-items:center; gap:12px;
+  font-size:13px; font-weight:500; margin-bottom:14px;
+  display:none;
+}
+.alert-bar.bahaya { background:var(--red-l); color:var(--red); border:1px solid #f5bcb7; }
+.alert-bar.waspada { background:var(--amber-l); color:var(--amber); border:1px solid #fdd9a0; }
+
+/* API MODAL */
+.modal-overlay { position:fixed; inset:0; z-index:500; background:rgba(0,0,0,.2); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; }
+.modal { background:var(--white); border-radius:var(--r); padding:32px; width:420px; box-shadow:var(--shadow-lg); }
+.modal-title { font-family:var(--serif); font-size:22px; margin-bottom:6px; }
+.modal-sub { font-size:12px; color:var(--text3); margin-bottom:22px; }
+.modal-input { width:100%; padding:10px 14px; border:1.5px solid var(--border); border-radius:8px; font-size:13px; font-family:var(--mono); color:var(--text); outline:none; background:var(--bg); margin-bottom:12px; transition:border-color .2s; }
+.modal-input:focus { border-color:var(--blue); background:var(--white); }
+.modal-btns { display:flex; gap:8px; justify-content:flex-end; }
+.modal-btn { padding:9px 20px; border-radius:8px; font-size:13px; font-family:var(--sans); font-weight:500; cursor:pointer; transition:all .15s; border:1px solid var(--border); background:var(--white); color:var(--text2); }
+.modal-btn.primary { background:var(--text); color:white; border-color:var(--text); }
+
+/* LOADING */
+.no-data { display:flex; flex-direction:column; align-items:center; justify-content:center; height:160px; gap:10px; color:var(--text3); font-size:13px; }
+.spinner { width:24px; height:24px; border:2px solid var(--border); border-top-color:var(--blue); border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.fade-in { animation:fadeIn .3s ease forwards; }
+
+@media(max-width:1100px){ .sensor-grid,.actuator-row{grid-template-columns:1fr 1fr} .charts-row,.history-row{grid-template-columns:1fr} }
+@media(max-width:700px){ .content{padding:14px} .device-hero{grid-template-columns:1fr} .dh-right{text-align:left} }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginPage">
+  <div class="lp-left">
+    <div class="lp-logo">
+      <div class="lp-drop">💧</div>
+      <span class="lp-brand">SWIFT</span>
+    </div>
+    <div class="lp-h">Selamat datang<br><em>kembali.</em></div>
+    <div class="lp-sub">Smart Water Integrated Flow & Turbidity Technology</div>
+    <label class="lp-label">Username</label>
+    <input type="text" class="lp-input" id="lu" placeholder="kelompok1" autocomplete="username">
+    <label class="lp-label">Password</label>
+    <input type="password" class="lp-input" id="lp" placeholder="••••••••" autocomplete="current-password">
+    <div class="lp-err" id="lerr">Username atau password salah.</div>
+    <button class="lp-btn" onclick="doLogin()">Masuk ke Dashboard →</button>
+    <div class="lp-footer">
+      <span>Kelompok 1 · TRI · Sekolah Vokasi UGM</span>
+      <span>2026</span>
+    </div>
+  </div>
+  <div class="lp-right">
+    <div class="rp-live"><div class="rp-dot"></div>ESP32_SWIFT_01 LIVE</div>
+    <div class="rp-card">
+      <div class="rp-label">Flow Rate</div>
+      <div class="rp-val" id="lp-flow">— <span style="font-size:14px;opacity:.4">L/min</span></div>
+      <div class="rp-sub">YF-S401 · GPIO 19</div>
+    </div>
+    <div class="rp-card">
+      <div class="rp-label">Turbidity</div>
+      <div class="rp-val" id="lp-turb">— <span style="font-size:14px;opacity:.4">NTU</span></div>
+      <div class="rp-sub">LGZD v1.1 · GPIO 34</div>
+    </div>
+    <div class="rp-card">
+      <div class="rp-label">Jarak Air</div>
+      <div class="rp-val" id="lp-dist">— <span style="font-size:14px;opacity:.4">cm</span></div>
+      <div class="rp-sub">HC-SR04 · GPIO 5/18</div>
+    </div>
+    <div class="rp-card">
+      <div class="rp-label">Status Sistem</div>
+      <div class="rp-val" id="lp-status" style="color:#6fcf97">MENUNGGU...</div>
+      <div class="rp-sub">MQTT: 10.33.102.177:1883</div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <header class="header">
+    <div class="hdr-brand">
+      <div class="hdr-drop">💧</div>
+      <span class="hdr-name">SWIFT</span>
+    </div>
+    <div class="hdr-right">
+      <div class="hdr-status waiting" id="espStatus">
+        <div class="hdr-dot" id="espDot"></div>
+        <span id="espStatusText">Menunggu ESP32...</span>
+      </div>
+      <div class="hdr-time" id="clock">—</div>
+      <button class="api-btn" onclick="showModal()">⚡ API</button>
+      <button class="logout-btn" onclick="doLogout()">Keluar</button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ALERT BAR -->
+    <div class="alert-bar" id="alertBar">
+      <span id="alertIcon">⚠️</span>
+      <span id="alertMsg">—</span>
+    </div>
+
+    <!-- DEVICE HERO -->
+    <div class="device-hero" id="deviceHero">
+      <div class="dh-left">
+        <div class="dh-badge">
+          <span>📡</span> ESP32 DevKit V1 · 30 Pin
+        </div>
+        <div class="dh-name">ESP32_SWIFT_01</div>
+        <div class="dh-loc">📍 Toilet GedungHY · DTEDI · Universitas Gadjah Mada</div>
+        <div class="dh-stats">
+          <div class="dh-stat">
+            <div class="dh-stat-val" id="hero-flow">—</div>
+            <div class="dh-stat-label">Flow Rate (L/min)</div>
+          </div>
+          <div class="dh-stat">
+            <div class="dh-stat-val" id="hero-turb">—</div>
+            <div class="dh-stat-label">Turbidity (NTU)</div>
+          </div>
+          <div class="dh-stat">
+            <div class="dh-stat-val" id="hero-dist">—</div>
+            <div class="dh-stat-label">Jarak Air (cm)</div>
+          </div>
+          <div class="dh-stat">
+            <div class="dh-stat-val" id="hero-mqtt">—</div>
+            <div class="dh-stat-label">MQTT Status</div>
+          </div>
+        </div>
+      </div>
+      <div class="dh-right">
+        <div class="dh-status-big offline" id="heroStatus">OFFLINE</div>
+        <div class="dh-msg" id="heroMsg">Menunggu koneksi ESP32...</div>
+        <div class="dh-update" id="heroUpdate">Belum ada data</div>
+      </div>
+    </div>
+
+    <!-- SENSOR CARDS -->
+    <div class="sensor-grid">
+      <div class="sensor-card" style="--sc-color:#1d5cf5">
+        <div class="sc-icon">💧</div>
+        <div class="sc-val"><span id="sc-flow">—</span><span class="sc-unit"> L/min</span></div>
+        <div class="sc-label">Flow Rate</div>
+        <div class="sc-range">Min: <span id="sc-flow-min">—</span> · Max: <span id="sc-flow-max">—</span> · Avg: <span id="sc-flow-avg">—</span></div>
+      </div>
+      <div class="sensor-card" style="--sc-color:#d97706">
+        <div class="sc-icon">🌊</div>
+        <div class="sc-val"><span id="sc-turb">—</span><span class="sc-unit"> NTU</span></div>
+        <div class="sc-label">Turbidity</div>
+        <div class="sc-range">Min: <span id="sc-turb-min">—</span> · Max: <span id="sc-turb-max">—</span> · Avg: <span id="sc-turb-avg">—</span></div>
+      </div>
+      <div class="sensor-card" style="--sc-color:#059669">
+        <div class="sc-icon">📏</div>
+        <div class="sc-val"><span id="sc-dist">—</span><span class="sc-unit"> cm</span></div>
+        <div class="sc-label">Jarak Air (HC-SR04)</div>
+        <div class="sc-range">Kosong: >15cm · Penuh: &lt;5cm · Error: ≥98cm</div>
+      </div>
+      <div class="sensor-card" style="--sc-color:#7c3aed">
+        <div class="sc-icon">📶</div>
+        <div class="sc-val"><span id="sc-count">0</span></div>
+        <div class="sc-label">Total Data Diterima</div>
+        <div class="sc-range">Session ini · interval 2 detik</div>
+      </div>
+    </div>
+
+    <!-- ACTUATORS -->
+    <div class="actuator-row">
+      <div class="act-card">
+        <div class="act-icon-wrap" id="p1-icon" style="background:#e8f7ef">⬆️</div>
+        <div>
+          <div class="act-name">Pompa 1 (Isi Air)</div>
+          <div class="act-state off" id="p1-state">OFF</div>
+        </div>
+        <button class="act-ctrl" onclick="sendCmd('POMPA1_ON')">▶ ON</button>
+        <button class="act-ctrl" onclick="sendCmd('POMPA1_OFF')">■ OFF</button>
+      </div>
+      <div class="act-card">
+        <div class="act-icon-wrap" id="p2-icon" style="background:#fdecea">⬇️</div>
+        <div>
+          <div class="act-name">Pompa 2 (Buang)</div>
+          <div class="act-state off" id="p2-state">OFF</div>
+        </div>
+        <button class="act-ctrl" onclick="sendCmd('POMPA2_ON')">▶ ON</button>
+        <button class="act-ctrl" onclick="sendCmd('POMPA2_OFF')">■ OFF</button>
+      </div>
+      <div class="act-card">
+        <div class="act-icon-wrap" id="valve-icon" style="background:#eef2fe">🔧</div>
+        <div>
+          <div class="act-name">Solenoid Valve</div>
+          <div class="act-state off" id="valve-state">TUTUP</div>
+        </div>
+        <button class="act-ctrl" onclick="sendCmd('VALVE_ON')">BUKA</button>
+        <button class="act-ctrl" onclick="sendCmd('VALVE_OFF')">TUTUP</button>
+      </div>
+      <div class="act-card">
+        <div class="act-icon-wrap" id="flush-icon" style="background:#fef3e2">🔄</div>
+        <div>
+          <div class="act-name">Flushing</div>
+          <div class="act-state off" id="flush-state">TIDAK AKTIF</div>
+        </div>
+        <button class="act-ctrl" onclick="sendCmd('FLUSH_NOW')">▶ FLUSH</button>
+        <button class="act-ctrl" onclick="sendCmd('RESET')" style="color:var(--red)">↺ RESET</button>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-head">
+          <div>
+            <div class="chart-title">Tren Sensor Real-time</div>
+            <div class="chart-sub">Flow Rate & Turbidity — 60 data terakhir (±2 menit)</div>
+          </div>
+          <span class="chart-tag">LIVE</span>
+        </div>
+        <div class="chart-wrap h220"><canvas id="trendChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head">
+          <div>
+            <div class="chart-title">Distribusi Status</div>
+            <div class="chart-sub">Session ini</div>
+          </div>
+          <span class="chart-tag">DONUT</span>
+        </div>
+        <div class="chart-wrap h220"><canvas id="pieChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- HISTORY CHARTS -->
+    <div class="history-row">
+      <div class="chart-card">
+        <div class="chart-head">
+          <div><div class="chart-title">Flow Rate History</div><div class="chart-sub">30 data terakhir</div></div>
+          <span class="chart-tag">BAR</span>
+        </div>
+        <div class="chart-wrap h200"><canvas id="flowBarChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head">
+          <div><div class="chart-title">Turbidity History</div><div class="chart-sub">30 data terakhir</div></div>
+          <span class="chart-tag">AREA</span>
+        </div>
+        <div class="chart-wrap h200"><canvas id="turbAreaChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- LOG TABLE -->
+    <div class="log-card">
+      <div class="log-head">
+        <div class="log-title">Log Data Sensor — Real-time</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--text3)" id="logCount">0 records</span>
+          <button onclick="clearLog()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:none;font-size:11px;cursor:pointer;color:var(--text3)">Hapus Log</button>
+        </div>
+      </div>
+      <div class="log-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Waktu</th>
+              <th>Flow Rate</th>
+              <th>Turbidity</th>
+              <th>Jarak</th>
+              <th>Status</th>
+              <th>Valve</th>
+              <th>Pompa1</th>
+              <th>Pompa2</th>
+              <th>Flushing</th>
+              <th>Pesan</th>
+            </tr>
+          </thead>
+          <tbody id="logBody">
+            <tr><td colspan="11"><div class="no-data"><div class="spinner"></div>Menunggu data dari ESP32...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /dashboard -->
+
+<!-- API MODAL -->
+<div class="modal-overlay" id="modalOverlay" style="display:none">
+  <div class="modal">
+    <div class="modal-title">Konfigurasi API</div>
+    <div class="modal-sub">Hubungkan ke Flask API untuk data live dari ESP32 via MQTT</div>
+    <input class="modal-input" id="apiUrlInput" value="http://10.33.102.177" placeholder="http://10.33.102.177">
+    <div style="font-size:11px;color:var(--text3);margin-bottom:14px">Endpoint: /api/live · /api/health · /api/control</div>
+    <div class="modal-btns">
+      <button class="modal-btn" onclick="hideModal()">Batal</button>
+      <button class="modal-btn primary" onclick="connectApi()">Connect</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── AUTH ──
+const CREDS = { u: 'kelompok1', p: 'kelompok112345' };
+document.getElementById('lp').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+function doLogin() {
+  const u = document.getElementById('lu').value.trim();
+  const p = document.getElementById('lp').value;
+  if(u===CREDS.u && p===CREDS.p) {
+    const lp = document.getElementById('loginPage');
+    lp.style.transition = 'opacity .3s';
+    lp.style.opacity = '0';
+    setTimeout(() => {
+      lp.style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      initDashboard();
+    }, 300);
+  } else {
+    const e = document.getElementById('lerr');
+    e.style.display = 'block';
+    document.getElementById('lp').value = '';
+    setTimeout(() => e.style.display='none', 3000);
+  }
+}
+
+function doLogout() {
+  document.getElementById('dashboard').style.display = 'none';
+  const lp = document.getElementById('loginPage');
+  lp.style.display = 'flex';
+  lp.style.opacity = '1';
+  document.getElementById('lu').value = '';
+  document.getElementById('lp').value = '';
+}
+
+// ── STATE ──
+let API_URL = 'http://10.33.102.177';
+let charts = {};
+let logData = [];
+let flowHistory = [], turbHistory = [], timeHistory = [];
+let sessionStats = { AMAN:0, WASPADA:0, BAHAYA:0 };
+let flowVals = [], turbVals = [];
+let totalCount = 0;
+let pollTimer = null;
+
+// ── INIT ──
+function initDashboard() {
+  startClock();
+  initCharts();
+  startPoll();
+}
+
+// ── CLOCK ──
+function startClock() {
+  const t = () => document.getElementById('clock').textContent =
+    new Date().toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'medium'});
+  t(); setInterval(t, 1000);
+}
+
+// ── CHARTS ──
+const baseOpts = {
+  responsive:true, maintainAspectRatio:false, animation:{duration:300},
+  plugins:{legend:{labels:{color:'#9c9485',font:{family:'DM Mono',size:10},usePointStyle:true,pointStyleWidth:8}}},
+  scales:{
+    x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#9c9485',font:{family:'DM Mono',size:9},maxTicksLimit:8}},
+    y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#9c9485',font:{family:'DM Mono',size:9}}}
+  }
+};
+
+function initCharts() {
+  // Trend
+  charts.trend = new Chart(document.getElementById('trendChart'), {
+    type:'line',
+    data:{ labels:[], datasets:[
+      {label:'Flow Rate (L/min)', data:[], borderColor:'#1d5cf5', backgroundColor:'rgba(29,92,245,0.05)', tension:.4, fill:true, pointRadius:0, borderWidth:2},
+      {label:'Turbidity (NTU)', data:[], borderColor:'#d97706', backgroundColor:'rgba(217,119,6,0.04)', tension:.4, fill:true, pointRadius:0, borderWidth:2}
+    ]},
+    options:{...baseOpts}
+  });
+
+  // Pie
+  charts.pie = new Chart(document.getElementById('pieChart'), {
+    type:'doughnut',
+    data:{
+      labels:['AMAN','WASPADA','BAHAYA'],
+      datasets:[{data:[0,0,0], backgroundColor:['#1a7a4a','#b45309','#c0392b'], borderColor:['#fff','#fff','#fff'], borderWidth:3, hoverOffset:6}]
+    },
+    options:{responsive:true, maintainAspectRatio:false, cutout:'65%',
+      plugins:{legend:{position:'bottom',labels:{color:'#9c9485',font:{family:'DM Mono',size:10},padding:14,usePointStyle:true}}}}
+  });
+
+  // Flow Bar
+  charts.flowBar = new Chart(document.getElementById('flowBarChart'), {
+    type:'bar',
+    data:{ labels:[], datasets:[{label:'Flow Rate', data:[], backgroundColor:'rgba(29,92,245,0.6)', borderRadius:3, borderSkipped:false}]},
+    options:{...baseOpts, plugins:{legend:{display:false}}}
+  });
+
+  // Turb Area
+  charts.turbArea = new Chart(document.getElementById('turbAreaChart'), {
+    type:'line',
+    data:{ labels:[], datasets:[{label:'Turbidity (NTU)', data:[], borderColor:'#d97706', backgroundColor:'rgba(217,119,6,0.08)', tension:.4, fill:true, pointRadius:0, borderWidth:2}]},
+    options:{...baseOpts, plugins:{legend:{display:false}}}
+  });
+}
+
+// ── POLLING ──
+function startPoll() {
+  poll();
+  pollTimer = setInterval(poll, 2000);
+}
+
+async function poll() {
+  try {
+    const r = await fetch(API_URL + '/api/live', {signal:AbortSignal.timeout(3000)});
+    const d = await r.json();
+    if(d.status==='ok') updateDashboard(d.data);
+  } catch(e) {
+    setStatus('offline', 'API Offline');
+  }
+}
+
+// ── UPDATE DASHBOARD ──
+function updateDashboard(d) {
+  const connected = d.connected && d.status !== 'OFFLINE';
+
+  // Header status
+  if(connected) {
+    setStatus('online', 'ESP32 Live · ' + d.status);
+  } else {
+    setStatus('waiting', 'Menunggu ESP32...');
+    return;
+  }
+
+  // Login panel update
+  document.getElementById('lp-flow').innerHTML = d.flow_rate + ' <span style="font-size:14px;opacity:.4">L/min</span>';
+  document.getElementById('lp-turb').innerHTML = d.turbidity + ' <span style="font-size:14px;opacity:.4">NTU</span>';
+  document.getElementById('lp-dist').innerHTML = d.distance + ' <span style="font-size:14px;opacity:.4">cm</span>';
+  document.getElementById('lp-status').textContent = d.status;
+
+  // Alert bar
+  const alertBar = document.getElementById('alertBar');
+  if(d.status === 'BAHAYA') {
+    alertBar.className = 'alert-bar bahaya';
+    alertBar.style.display = 'flex';
+    document.getElementById('alertIcon').textContent = '🚨';
+    document.getElementById('alertMsg').textContent = '⚠ STATUS BAHAYA: ' + d.message + ' — Valve otomatis ditutup, flushing aktif!';
+  } else if(d.status === 'WASPADA') {
+    alertBar.className = 'alert-bar waspada';
+    alertBar.style.display = 'flex';
+    document.getElementById('alertIcon').textContent = '⚠️';
+    document.getElementById('alertMsg').textContent = 'WASPADA: ' + d.message;
+  } else {
+    alertBar.style.display = 'none';
+  }
+
+  // Hero
+  document.getElementById('hero-flow').textContent = d.flow_rate;
+  document.getElementById('hero-turb').textContent = d.turbidity;
+  document.getElementById('hero-dist').textContent = d.distance >= 98 ? 'ERROR' : d.distance;
+  document.getElementById('hero-mqtt').textContent = d.connected ? 'TERHUBUNG' : 'PUTUS';
+
+  const heroStatus = document.getElementById('heroStatus');
+  heroStatus.textContent = d.status;
+  heroStatus.className = 'dh-status-big ' + d.status.toLowerCase();
+  document.getElementById('heroMsg').textContent = d.message || '—';
+  document.getElementById('heroUpdate').textContent = 'Update: ' + (d.last_update || '—');
+
+  // Sensor cards
+  document.getElementById('sc-flow').textContent = d.flow_rate;
+  document.getElementById('sc-turb').textContent = d.turbidity;
+  document.getElementById('sc-dist').textContent = d.distance >= 98 ? 'ERROR' : d.distance;
+
+  // Actuators
+  updateAct('p1', d.pump1, d.pump1 ? 'ON' : 'OFF');
+  updateAct('p2', d.pump2, d.pump2 ? 'ON' : 'OFF');
+  updateValve(d.valve);
+  updateFlush(d.flushing);
+
+  // Stats
+  totalCount++;
+  document.getElementById('sc-count').textContent = totalCount;
+  flowVals.push(d.flow_rate);
+  turbVals.push(d.turbidity);
+  sessionStats[d.status] = (sessionStats[d.status]||0) + 1;
+
+  // Min/max/avg
+  document.getElementById('sc-flow-min').textContent = Math.min(...flowVals).toFixed(2);
+  document.getElementById('sc-flow-max').textContent = Math.max(...flowVals).toFixed(2);
+  document.getElementById('sc-flow-avg').textContent = (flowVals.reduce((a,b)=>a+b,0)/flowVals.length).toFixed(2);
+  document.getElementById('sc-turb-min').textContent = Math.min(...turbVals).toFixed(1);
+  document.getElementById('sc-turb-max').textContent = Math.max(...turbVals).toFixed(1);
+  document.getElementById('sc-turb-avg').textContent = (turbVals.reduce((a,b)=>a+b,0)/turbVals.length).toFixed(1);
+
+  // Charts
+  const t = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  timeHistory.push(t);
+  flowHistory.push(d.flow_rate);
+  turbHistory.push(d.turbidity);
+  if(timeHistory.length > 60) { timeHistory.shift(); flowHistory.shift(); turbHistory.shift(); }
+
+  charts.trend.data.labels = timeHistory;
+  charts.trend.data.datasets[0].data = flowHistory;
+  charts.trend.data.datasets[1].data = turbHistory;
+  charts.trend.update('none');
+
+  charts.pie.data.datasets[0].data = [sessionStats.AMAN||0, sessionStats.WASPADA||0, sessionStats.BAHAYA||0];
+  charts.pie.update('none');
+
+  const last30t = timeHistory.slice(-30);
+  const last30f = flowHistory.slice(-30);
+  const last30u = turbHistory.slice(-30);
+  charts.flowBar.data.labels = last30t;
+  charts.flowBar.data.datasets[0].data = last30f;
+  charts.flowBar.data.datasets[0].backgroundColor = last30f.map(v => v > 5 ? 'rgba(192,57,43,0.7)' : v > 3 ? 'rgba(180,83,9,0.7)' : 'rgba(29,92,245,0.6)');
+  charts.flowBar.update('none');
+
+  charts.turbArea.data.labels = last30t;
+  charts.turbArea.data.datasets[0].data = last30u;
+  charts.turbArea.data.datasets[0].borderColor = last30u.slice(-1)[0] > 25 ? '#c0392b' : last30u.slice(-1)[0] > 5 ? '#d97706' : '#1a7a4a';
+  charts.turbArea.update('none');
+
+  // Log
+  addLog(d, t);
+}
+
+function updateAct(id, isOn, label) {
+  const el = document.getElementById(id+'-state');
+  el.textContent = label;
+  el.className = 'act-state ' + (isOn ? 'on' : 'off');
+}
+
+function updateValve(isOpen) {
+  const el = document.getElementById('valve-state');
+  el.textContent = isOpen ? 'BUKA' : 'TUTUP';
+  el.className = 'act-state ' + (isOpen ? 'on' : 'off');
+}
+
+function updateFlush(isFlushing) {
+  const el = document.getElementById('flush-state');
+  el.textContent = isFlushing ? 'AKTIF' : 'TIDAK AKTIF';
+  el.className = 'act-state ' + (isFlushing ? 'active' : 'off');
+}
+
+function setStatus(type, text) {
+  const el = document.getElementById('espStatus');
+  const dot = document.getElementById('espDot');
+  const tx = document.getElementById('espStatusText');
+  el.className = 'hdr-status ' + type;
+  tx.textContent = text;
+  dot.className = 'hdr-dot' + (type==='online' ? ' pulse' : '');
+}
+
+// ── LOG ──
+function addLog(d, t) {
+  logData.unshift({t, ...d});
+  if(logData.length > 200) logData.pop();
+  document.getElementById('logCount').textContent = logData.length + ' records';
+
+  const tbody = document.getElementById('logBody');
+  const s = d.status.toLowerCase();
+  const row = `<tr class="fade-in">
+    <td style="font-family:var(--mono);color:var(--text3)">${logData.length}</td>
+    <td style="font-family:var(--mono);color:var(--blue)">${t}</td>
+    <td style="font-family:var(--mono)">${d.flow_rate}</td>
+    <td style="font-family:var(--mono)">${d.turbidity}</td>
+    <td style="font-family:var(--mono)">${d.distance >= 98 ? 'ERR' : d.distance}</td>
+    <td><span class="badge ${s}">${d.status}</span></td>
+    <td style="color:${d.valve?'var(--green)':'var(--text3)'}">${d.valve?'BUKA':'TUTUP'}</td>
+    <td style="color:${d.pump1?'var(--green)':'var(--text3)'}">${d.pump1?'ON':'OFF'}</td>
+    <td style="color:${d.pump2?'var(--green)':'var(--text3)'}">${d.pump2?'ON':'OFF'}</td>
+    <td style="color:${d.flushing?'var(--red)':'var(--text3)'}">${d.flushing?'AKTIF':'—'}</td>
+    <td style="color:var(--text3)">${d.message||'—'}</td>
+  </tr>`;
+  tbody.innerHTML = row + tbody.innerHTML;
+  if(tbody.rows.length > 100) tbody.deleteRow(tbody.rows.length-1);
+}
+
+function clearLog() {
+  logData = [];
+  flowVals = []; turbVals = [];
+  sessionStats = {AMAN:0,WASPADA:0,BAHAYA:0};
+  totalCount = 0;
+  document.getElementById('logBody').innerHTML = '<tr><td colspan="11"><div class="no-data"><div class="spinner"></div>Menunggu data dari ESP32...</div></td></tr>';
+  document.getElementById('logCount').textContent = '0 records';
+  document.getElementById('sc-count').textContent = '0';
+}
+
+// ── CONTROL ──
+async function sendCmd(cmd) {
+  try {
+    const r = await fetch(API_URL + '/api/control', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({command: cmd})
+    });
+    const d = await r.json();
+    if(d.status==='ok') console.log('[CMD] Terkirim:', cmd);
+  } catch(e) {
+    alert('Gagal kirim perintah. Pastikan API terhubung.');
+  }
+}
+
+// ── API MODAL ──
+function showModal() { document.getElementById('modalOverlay').style.display='flex'; }
+function hideModal() { document.getElementById('modalOverlay').style.display='none'; }
+async function connectApi() {
+  API_URL = document.getElementById('apiUrlInput').value.trim();
+  hideModal();
+  clearInterval(pollTimer);
+  try {
+    const r = await fetch(API_URL+'/api/health',{signal:AbortSignal.timeout(5000)});
+    const d = await r.json();
+    if(d.status==='ok') {
+      setStatus('online','API Terhubung');
+      startPoll();
+    }
+  } catch {
+    setStatus('offline','Gagal Connect');
+    alert('Gagal connect ke API. Pastikan Flask API berjalan dan SSH tunnel aktif.');
+  }
+}
+
+// ── AUTO POLL PREVIEW ON LOGIN PAGE ──
+async function pollLoginPreview() {
+  try {
+    const r = await fetch('http://10.33.102.177/api/live',{signal:AbortSignal.timeout(3000)});
+    const d = await r.json();
+    if(d.status==='ok' && d.data.connected) {
+      document.getElementById('lp-flow').innerHTML = d.data.flow_rate + ' <span style="font-size:14px;opacity:.4">L/min</span>';
+      document.getElementById('lp-turb').innerHTML = d.data.turbidity + ' <span style="font-size:14px;opacity:.4">NTU</span>';
+      document.getElementById('lp-dist').innerHTML = d.data.distance + ' <span style="font-size:14px;opacity:.4">cm</span>';
+      document.getElementById('lp-status').textContent = d.data.status;
+      document.getElementById('lp-status').style.color = d.data.status==='AMAN'?'#6fcf97':d.data.status==='WASPADA'?'#f5c842':'#ff6b6b';
+    }
+  } catch{}
+}
+setInterval(pollLoginPreview, 3000);
+pollLoginPreview();
+</script>
+</body>
+</html>
+HTMLEOF
