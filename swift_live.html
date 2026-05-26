@@ -386,6 +386,10 @@ tr:hover td { background:var(--bg); }
             <div class="dh-stat-label">Jarak Air (cm)</div>
           </div>
           <div class="dh-stat">
+            <div class="dh-stat-val" id="hero-level">—</div>
+            <div class="dh-stat-label">Level Air (%)</div>
+          </div>
+          <div class="dh-stat">
             <div class="dh-stat-val" id="hero-mqtt">—</div>
             <div class="dh-stat-label">MQTT Status</div>
           </div>
@@ -404,25 +408,41 @@ tr:hover td { background:var(--bg); }
         <div class="sc-icon">💧</div>
         <div class="sc-val"><span id="sc-flow">—</span><span class="sc-unit"> L/min</span></div>
         <div class="sc-label">Flow Rate</div>
-        <div class="sc-range">Min: <span id="sc-flow-min">—</span> · Max: <span id="sc-flow-max">—</span> · Avg: <span id="sc-flow-avg">—</span></div>
+        <div class="sc-range">Min: <span id="sc-flow-min">—</span> · Max: <span id="sc-flow-max">—</span> · Avg: <span id="sc-flow-avg">—</span> · Normal: 0.3–5.0 L/min</div>
       </div>
       <div class="sensor-card" style="--sc-color:#d97706">
         <div class="sc-icon">🌊</div>
         <div class="sc-val"><span id="sc-turb">—</span><span class="sc-unit"> NTU</span></div>
         <div class="sc-label">Turbidity</div>
-        <div class="sc-range">Min: <span id="sc-turb-min">—</span> · Max: <span id="sc-turb-max">—</span> · Avg: <span id="sc-turb-avg">—</span></div>
+        <div class="sc-range">Min: <span id="sc-turb-min">—</span> · Max: <span id="sc-turb-max">—</span> · Avg: <span id="sc-turb-avg">—</span> · Aman: &lt;5 · Waspada: 5–25 · Bahaya: &gt;25 NTU</div>
       </div>
       <div class="sensor-card" style="--sc-color:#059669">
         <div class="sc-icon">📏</div>
         <div class="sc-val"><span id="sc-dist">—</span><span class="sc-unit"> cm</span></div>
         <div class="sc-label">Jarak Air (HC-SR04)</div>
-        <div class="sc-range">Kosong: >15cm · Penuh: &lt;5cm · Error: ≥98cm</div>
+        <div class="sc-range">Kosong: &gt;18cm · Penuh: &lt;3cm · Error: ≥98cm</div>
       </div>
       <div class="sensor-card" style="--sc-color:#7c3aed">
         <div class="sc-icon">📶</div>
         <div class="sc-val"><span id="sc-count">0</span></div>
         <div class="sc-label">Total Data Diterima</div>
         <div class="sc-range">Session ini · interval 2 detik</div>
+      </div>
+    </div>
+
+    <!-- LEVEL WATER ROW -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
+      <div class="sensor-card" style="--sc-color:#059669">
+        <div class="sc-icon">🪣</div>
+        <div class="sc-val"><span id="sc-level">—</span><span class="sc-unit"> %</span></div>
+        <div class="sc-label">Level Air Wadah</div>
+        <div class="sc-range">Penuh: jarak ≤3cm · Kosong: jarak ≥18cm · Error: jarak ≥98cm</div>
+      </div>
+      <div class="sensor-card" style="--sc-color:#5b21b6">
+        <div class="sc-icon">⏱️</div>
+        <div class="sc-val"><span id="sc-flush-time">—</span></div>
+        <div class="sc-label">Flushing Status</div>
+        <div class="sc-range">Durasi maks: 30 detik · Trigger: Turbidity &gt;25 NTU</div>
       </div>
     </div>
 
@@ -456,13 +476,30 @@ tr:hover td { background:var(--bg); }
         <button class="act-ctrl" onclick="sendCmd('VALVE_OFF')">TUTUP</button>
       </div>
       <div class="act-card">
+        <div class="act-icon-wrap" id="indikator-icon" style="background:#fef3e2">💡</div>
+        <div>
+          <div class="act-name">Indikator 12V (CH4)</div>
+          <div class="act-state off" id="indikator-state">OFF</div>
+        </div>
+      </div>
+    </div>
+    <!-- FLUSHING / RESET ROW -->
+    <div class="actuator-row" style="grid-template-columns:1fr 1fr;margin-bottom:18px;">
+      <div class="act-card">
         <div class="act-icon-wrap" id="flush-icon" style="background:#fef3e2">🔄</div>
         <div>
-          <div class="act-name">Flushing</div>
+          <div class="act-name">Flushing Manual</div>
           <div class="act-state off" id="flush-state">TIDAK AKTIF</div>
         </div>
         <button class="act-ctrl" onclick="sendCmd('FLUSH_NOW')">▶ FLUSH</button>
-        <button class="act-ctrl" onclick="sendCmd('RESET')" style="color:var(--red)">↺ RESET</button>
+      </div>
+      <div class="act-card">
+        <div class="act-icon-wrap" style="background:#fdecea">↺</div>
+        <div>
+          <div class="act-name">Reset ESP32</div>
+          <div class="act-state off">—</div>
+        </div>
+        <button class="act-ctrl" onclick="sendCmd('RESET')" style="color:var(--red)">↺ RESTART</button>
       </div>
     </div>
 
@@ -526,6 +563,7 @@ tr:hover td { background:var(--bg); }
               <th>Flow Rate</th>
               <th>Turbidity</th>
               <th>Jarak</th>
+              <th>Level %</th>
               <th>Status</th>
               <th>Valve</th>
               <th>Pompa1</th>
@@ -535,7 +573,7 @@ tr:hover td { background:var(--bg); }
             </tr>
           </thead>
           <tbody id="logBody">
-            <tr><td colspan="11"><div class="no-data"><div class="spinner"></div>Menunggu data dari ESP32...</div></td></tr>
+            <tr><td colspan="12"><div class="no-data"><div class="spinner"></div>Menunggu data dari ESP32...</div></td></tr>
           </tbody>
         </table>
       </div>
@@ -704,7 +742,7 @@ function updateDashboard(d) {
     alertBar.className = 'alert-bar bahaya';
     alertBar.style.display = 'flex';
     document.getElementById('alertIcon').textContent = '🚨';
-    document.getElementById('alertMsg').textContent = '⚠ STATUS BAHAYA: ' + d.message + ' — Valve otomatis ditutup, flushing aktif!';
+    document.getElementById('alertMsg').textContent = '⚠ STATUS BAHAYA: ' + d.message + ' — Flushing otomatis aktif (maks 30 detik)!';
   } else if(d.status === 'WASPADA') {
     alertBar.className = 'alert-bar waspada';
     alertBar.style.display = 'flex';
@@ -718,6 +756,7 @@ function updateDashboard(d) {
   document.getElementById('hero-flow').textContent = d.flow_rate;
   document.getElementById('hero-turb').textContent = d.turbidity;
   document.getElementById('hero-dist').textContent = d.distance >= 98 ? 'ERROR' : d.distance;
+  document.getElementById('hero-level').textContent = d.level_pct < 0 ? 'ERROR' : (d.level_pct !== undefined ? d.level_pct.toFixed(1) + '%' : '—');
   document.getElementById('hero-mqtt').textContent = d.connected ? 'TERHUBUNG' : 'PUTUS';
 
   const heroStatus = document.getElementById('heroStatus');
@@ -730,12 +769,16 @@ function updateDashboard(d) {
   document.getElementById('sc-flow').textContent = d.flow_rate;
   document.getElementById('sc-turb').textContent = d.turbidity;
   document.getElementById('sc-dist').textContent = d.distance >= 98 ? 'ERROR' : d.distance;
+  document.getElementById('sc-level').textContent = d.level_pct < 0 ? 'ERROR' : (d.level_pct !== undefined ? d.level_pct.toFixed(1) : '—');
+  document.getElementById('sc-flush-time').textContent = d.flushing ? 'AKTIF' : 'TIDAK AKTIF';
 
   // Actuators
   updateAct('p1', d.pump1, d.pump1 ? 'ON' : 'OFF');
   updateAct('p2', d.pump2, d.pump2 ? 'ON' : 'OFF');
   updateValve(d.valve);
   updateFlush(d.flushing);
+  // Indikator 12V ikut Pompa2 (sesuai Arduino: digitalWrite(PIN_INDIKATOR) bareng PIN_POMPA2)
+  updateAct('indikator', d.pump2, d.pump2 ? 'ON' : 'OFF');
 
   // Stats
   totalCount++;
@@ -825,6 +868,7 @@ function addLog(d, t) {
     <td style="font-family:var(--mono)">${d.flow_rate}</td>
     <td style="font-family:var(--mono)">${d.turbidity}</td>
     <td style="font-family:var(--mono)">${d.distance >= 98 ? 'ERR' : d.distance}</td>
+    <td style="font-family:var(--mono)">${d.level_pct < 0 ? 'ERR' : (d.level_pct !== undefined ? d.level_pct.toFixed(1)+'%' : '—')}</td>
     <td><span class="badge ${s}">${d.status}</span></td>
     <td style="color:${d.valve?'var(--green)':'var(--text3)'}">${d.valve?'BUKA':'TUTUP'}</td>
     <td style="color:${d.pump1?'var(--green)':'var(--text3)'}">${d.pump1?'ON':'OFF'}</td>
@@ -841,7 +885,7 @@ function clearLog() {
   flowVals = []; turbVals = [];
   sessionStats = {AMAN:0,WASPADA:0,BAHAYA:0};
   totalCount = 0;
-  document.getElementById('logBody').innerHTML = '<tr><td colspan="11"><div class="no-data"><div class="spinner"></div>Menunggu data dari ESP32...</div></td></tr>';
+  document.getElementById('logBody').innerHTML = '<tr><td colspan="12"><div class="no-data"><div class="spinner"></div>Menunggu data dari ESP32...</div></td></tr>';
   document.getElementById('logCount').textContent = '0 records';
   document.getElementById('sc-count').textContent = '0';
 }
