@@ -632,7 +632,7 @@ function doLogout() {
 }
 
 // ── STATE ──
-let API_URL = 'http://10.33.102.177';
+let API_URL = 'http://10.33.102.177:5000';
 let charts = {};
 let logData = [];
 let flowHistory = [], turbHistory = [], timeHistory = [];
@@ -910,7 +910,7 @@ async function sendCmd(cmd) {
 // ── AUTO POLL PREVIEW ON LOGIN PAGE ──
 async function pollLoginPreview() {
   try {
-    const r = await fetch('http://10.33.102.177/api/live',{signal:AbortSignal.timeout(3000)});
+    const r = await fetch('http://10.33.102.177:5000/api/live',{signal:AbortSignal.timeout(3000)});
     const d = await r.json();
     if(d.status==='ok' && d.data.connected) {
       document.getElementById('lp-flow').innerHTML = d.data.flow_rate + ' <span style="font-size:14px;opacity:.4">L/min</span>';
